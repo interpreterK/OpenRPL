@@ -1,0 +1,11 @@
+{
+  "name": "OpenRPL",
+  "tree": {
+    "$className": "DataModel",
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {"$path": "Client"}
+      }
+    }
+  }
+}
