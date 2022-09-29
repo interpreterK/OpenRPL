@@ -6,8 +6,10 @@
 ]]
 
 -- Modify these to your liking
-local Flying  = true
-local Gravity = 150
+local Disable_CoreGui = true
+local Flying          = true
+local Gravity         = 150
+
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
@@ -36,8 +38,10 @@ local Players    = S.Players
 local RunService = S.RunService
 local UIS        = S.UserInputService
 
-local V3     = Vector3.new
-local lookAt = CFrame.lookAt
+local V3 = Vector3.new
+local CN, lookAt = CFrame.new, CFrame.lookAt
+local insert = table.insert
+local abs, min, max = math.abs, math.min, math.max
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
 
 -- Camera
@@ -56,6 +60,12 @@ local function SetView(Object)
 end
 --
 
+-- CoreGuis
+if Disable_CoreGui then
+	S.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+end
+--
+
 -- The player
 -- Maybe limbs sometime?
 local Root = New('Part', workspace, {
@@ -68,15 +78,35 @@ local Root = New('Part', workspace, {
 SetView(Root)
 --
 
+-- Freecam
+local Freecam = New('Part', Camera, {
+	Position = Root.Position,
+	Anchored = true,
+	Transparency = 1,
+	Size = Vector3.zero
+})
+--
+
 -- Player I/O
 local Holding = {}
 local KeyDown = {}
 local Pointer3D = Vector3.zero
+local Using_Freecam = false
 
 -- Key binds
 function KeyDown.g()
 	Flying = not Flying
 	print("Flying=",Flying)
+end
+
+function KeyDown.f()
+	Using_Freecam = not Using_Freecam
+	if Using_Freecam then
+		SetView(Freecam)
+	else
+		SetView(Root)
+	end
+	print("Freecam=",Using_Freecam)
 end
 --
 
@@ -102,6 +132,7 @@ UIS.InputChanged:Connect(function(input, _)
 	end
 end)
 
+
 -- Player movement
 local Movement  = {
 	x = Vector3.xAxis/10,
@@ -115,39 +146,118 @@ local function Pointer_Direction()
 	return (ScreenRay.Origin+Root_CF.LookVector+ScreenRay.Direction*(Camera.CFrame.p-Root_CF.p).Magnitude*2)
 end
 
-local function Controls(Forward_Direction, Right_Direction) --Required to run in a loop
+local function Controls(Part, Forward_Direction, Right_Direction) --Required to run in a loop
 	if Holding.w then
-		Root.Position+=Forward_Direction+Movement.z
+		Part.Position+=Forward_Direction+Movement.z
 	end
 	if Holding.s then
-		Root.Position-=Forward_Direction+Movement.z
+		Part.Position-=Forward_Direction+Movement.z
 	end
 	if Holding.d then
-		Root.Position+=Right_Direction+Movement.x
+		Part.Position+=Right_Direction+Movement.x
 	end
 	if Holding.a then
-		Root.Position-=Right_Direction+Movement.x
+		Part.Position-=Right_Direction+Movement.x
 	end
 	if Holding.e then
-		Root.Position+=Movement.y
+		Part.Position+=Movement.y
 	end
 	if Holding.q then
-		Root.Position-=Movement.y
+		Part.Position-=Movement.y
 	end
 end
 --
 
 -- Step loops & Physics
+local Valid = { --Not all basepart's are supported yet
+	Parts = {'Part','TrussPart'},
+	Shapes = {'Block'}
+}
 
+local function GetWorkspace()
+	local Descendants = workspace:GetDescendants()
+	local Parts = {}
+	for A_n = 1, #Descendants do
+		for P_n = 1, #Valid.Parts do
+			local Part = Descendants[A_n]
+
+			for S_n = 1, #Valid.Shapes do
+				local Shape = Valid.Shapes[S_n]
+				if Part.ClassName == Valid.Parts[P_n] and Part.Shape == Enum.PartType[Shape] then
+					insert(Parts, Part)
+				end
+			end
+		end
+	end
+	return Parts
+end
+
+local function Get_Sides(Object)
+	local x,y,z = Object.Size.x,Object.Size.y,Object.Size.z
+	return {
+		X_POS = x/2,  --Left
+		X_NEG = x/-2, --Right
+		Y_POS = y/2,  --Top
+		Y_NEG = y/-2, --Bottom
+		Z_POS = z/2,  --Front
+		Z_NEG = z/-2  --Back
+	}
+end
+
+local function Collision_Solver(Object, Sides)
+	local Left   = CN(Sides.X_POS,0,0)
+	local Right  = CN(Sides.X_NEG,0,0)
+	local Top    = CN(0,Sides.Y_POS,0)
+	local Bottom = CN(0,Sides.Y_NEG,0)
+	local Front  = CN(0,0,Sides.Z_POS)
+	local Back   = CN(0,0,Sides.Z_NEG)
+
+	local abs_size_X, abs_size_X_NEG = abs(Sides.X_POS), abs(Sides.X_NEG)
+	local abs_size_Y, abs_size_Y_NEG = abs(Sides.Y_POS), abs(Sides.Y_NEG)
+	local abs_size_Z, abs_size_Z_NEG = abs(Sides.Z_POS), abs(Sides.Z_NEG)
+
+	local Object_P    = Object.Position
+	local Mover_P     = Mover.Position
+	local TopPoint    = -Mover_P+Top.p
+	local BottomPoint = -Mover_P+Bottom.p
+	local LeftPoint   = -Mover_P+Left.p
+	local RightPoint  = -Mover_P+RightPoint.p
+	local FrontPoint  = -Mover_P+FrontPoint.p
+	local BackPoint   = -Mover_P+BackPoint.p
+
+	local max_sX = min(-abs_sizeX, max())
+
+	return {
+		Top_Hit = V3(Object_P.x+max_sX,Top.p.y,Object_P.z+max_sZ),
+
+	}
+end
+
+local function Detect_Collision(Object)
+	local Collision = Get_Sides(Object)
+
+end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
-RunService.Stepped:Connect(function()
-	Controls(Camera.CFrame.LookVector, Camera.CFrame.RightVector)
-
-	Root.CFrame=lookAt(Root.Position,Pointer_Direction())
+RunService.Heartbeat:Connect(function()
+	if Using_Freecam then
+		Controls(Freecam, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
+	else
+		Controls(Root, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
+		Root.CFrame=lookAt(Root.Position, Pointer_Direction())
+		Freecam.Position=Root.Position
+	end
 end)
 
-RunService.Heartbeat:Connect(function()
+RunService.Stepped:Connect(function(deltaTime)
+	local Objects = GetWorkspace()
 
+	for i = 1, #Objects do
+		local Object = Objects[i]
+
+		if Object.CanCollide then
+			Detect_Collision(Object)
+		end
+	end
 end)
 --
