@@ -192,8 +192,8 @@ local function GetWorkspace()
 end
 
 local function Get_Sides(Object)
-	local x,y,z = Object.Size.x,Object.Size.y,Object.Size.z
-	return {
+	local x, y, z = Object.Size.x, Object.Size.y, Object.Size.z
+	local Axis = {
 		X_POS = x/2,  --Left
 		X_NEG = x/-2, --Right
 		Y_POS = y/2,  --Top
@@ -201,6 +201,15 @@ local function Get_Sides(Object)
 		Z_POS = z/2,  --Front
 		Z_NEG = z/-2  --Back
 	}
+	local Normalized = {
+		X_POS = V3(Axis.X_POS,0,0),
+		X_NEG = V3(Axis.X_NEG,0,0),
+		Y_POS = V3(0,Axis.Y_POS,0),
+		Y_NEG = V3(0,Axis.Y_NEG,0),
+		Z_POS = V3(0,0,Axis.Z_POS),
+		Z_NEG = V3(0,0,Axis.Z_NEG)
+	}
+	return {Axis = Axis, Normalized = Normalized}
 end
 
 local function E_clamp(n1, n2, n3) --Errorless clamp
@@ -210,18 +219,18 @@ end
 local function Collision_Solver(Object, Sides)
 	local Object_P = Object.Position
 	local Root_P   = Root.Position
-	local Left     = Object_P+V3(Sides.X_POS,0,0)
-	local Right    = Object_P+V3(Sides.X_NEG,0,0)
-	local Top      = Object_P+V3(0,Sides.Y_POS,0)
-	local Bottom   = Object_P+V3(0,Sides.Y_NEG,0)
-	local Front    = Object_P+V3(0,0,Sides.Z_POS)
-	local Back     = Object_P+V3(0,0,Sides.Z_NEG)
 
+	local Left   = Object_P+Sides.Normalized.X_POS
+	local Right  = Object_P+Sides.Normalized.X_NEG
+	local Top    = Object_P+Sides.Normalized.Y_POS
+	local Bottom = Object_P+Sides.Normalized.Y_NEG
+	local Front  = Object_P+Sides.Normalized.Z_POS
+	local Back   = Object_P+Sides.Normalized.Z_NEG
 	--s:Size ~CORD
 	local function PointConnect(Point, Inverse)
-		local abs_size_X = Inverse and abs(Sides.X_NEG) or abs(Sides.X_POS)
-		local abs_size_Y = Inverse and abs(Sides.Y_NEG) or abs(Sides.Y_POS)
-		local abs_size_Z = Inverse and abs(Sides.Z_NEG) or abs(Sides.Z_POS)
+		local abs_size_X = Inverse and abs(Sides.Axis.X_NEG) or abs(Sides.Axis.X_POS)
+		local abs_size_Y = Inverse and abs(Sides.Axis.Y_NEG) or abs(Sides.Axis.Y_POS)
+		local abs_size_Z = Inverse and abs(Sides.Axis.Z_NEG) or abs(Sides.Axis.Z_POS)
 		local max_sX = E_clamp(-abs_size_X, -Point.x, abs_size_X)
 		local max_sY = E_clamp(-abs_size_Y, -Point.y, abs_size_Y)
 		local max_sZ = E_clamp(-abs_size_Z, -Point.z, abs_size_Z)
@@ -245,12 +254,26 @@ local function Collision_Solver(Object, Sides)
 	}
 end
 
+local Test = New('Part', workspace, {
+	Color = Color3.new(1,0,0),
+	Size = V3(2,0,2),
+	Anchored = true
+})
+
 local function Detect_Collision(Object)
-	local Collision = Collision_Solver(Object, Get_Sides(Object))
+	local Object_Sides     = Get_Sides(Object)
+	local Root_Sides       = Get_Sides(Root)
+	local Collision_Object = Collision_Solver(Object, Object_Sides)
+	local Collision_Root   = Collision_Solver(Root, Root_Sides)
+
 	local Mover_p = Root.Position
 
-	if Mover_p.y == Collision.Top.y then
-		Root.Position=V3(Root.Position.x,Collision.Top.y,Root.Position.z)
+	if Object.Name == 'Baseplate' then
+		Test.Position = Collision_Object.Top
+
+		if (Collision_Object.Top-Collision_Root.Bottom).y>=Collision_Object.Top.y then
+			Root.Position=V3(Root.Position.x, Collision_Object.Top.y, Root.Position.z)
+		end
 	end
 end
 
