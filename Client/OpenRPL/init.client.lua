@@ -10,7 +10,6 @@ local Disable_CoreGui = true
 local Flying          = true
 local Gravity         = 150
 
-
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -204,42 +203,65 @@ local function Get_Sides(Object)
 	}
 end
 
+local function clamp2(n1, n2, n3)
+	local n = 0
+	pcall(function()
+		n = math.clamp(n1, n2, n3)
+	end)
+	return n
+end
+
 local function Collision_Solver(Object, Sides)
-	local Left   = CN(Sides.X_POS,0,0)
-	local Right  = CN(Sides.X_NEG,0,0)
-	local Top    = CN(0,Sides.Y_POS,0)
-	local Bottom = CN(0,Sides.Y_NEG,0)
-	local Front  = CN(0,0,Sides.Z_POS)
-	local Back   = CN(0,0,Sides.Z_NEG)
+	local Object_P = Object.Position
+	local Root_P   = Root.Position
+	local Left     = Object_P+V3(Sides.X_POS,0,0)
+	local Right    = Object_P+V3(Sides.X_NEG,0,0)
+	local Top      = Object_P+V3(0,Sides.Y_POS,0)
+	local Bottom   = Object_P+V3(0,Sides.Y_NEG,0)
+	local Front    = Object_P+V3(0,0,Sides.Z_POS)
+	local Back     = Object_P+V3(0,0,Sides.Z_NEG)
 
-	local abs_size_X, abs_size_X_NEG = abs(Sides.X_POS), abs(Sides.X_NEG)
-	local abs_size_Y, abs_size_Y_NEG = abs(Sides.Y_POS), abs(Sides.Y_NEG)
-	local abs_size_Z, abs_size_Z_NEG = abs(Sides.Z_POS), abs(Sides.Z_NEG)
+	--s:Size ~CORD
+	local function CoordinateFuse(Point, Inverse)
+		local abs_size_X = Inverse and abs(Sides.X_NEG) or abs(Sides.X_POS)
+		local abs_size_Y = Inverse and abs(Sides.Y_NEG) or abs(Sides.Y_POS)
+		local abs_size_Z = Inverse and abs(Sides.Z_NEG) or abs(Sides.Z_POS)
+		local max_sX = clamp2(-abs_size_X, -Point.x, abs_size_X)
+		local max_sY = clamp2(-abs_size_Y, -Point.y, abs_size_Y)
+		local max_sZ = clamp2(-abs_size_Z, -Point.z, abs_size_Z)
+		return {x = max_sX, y = max_sY, z = max_sZ}
+	end
 
-	local Object_P    = Object.Position
-	local Mover_P     = Mover.Position
-	local TopPoint    = -Mover_P+Top.p
-	local BottomPoint = -Mover_P+Bottom.p
-	local LeftPoint   = -Mover_P+Left.p
-	local RightPoint  = -Mover_P+RightPoint.p
-	local FrontPoint  = -Mover_P+FrontPoint.p
-	local BackPoint   = -Mover_P+BackPoint.p
-
-	local max_sX = min(-abs_sizeX, max())
+	local Top_HitPhysics    = CoordinateFuse(-Root_P+Top, false)
+	local Bottom_HitPhysics = CoordinateFuse(-Root_P+Bottom, true)
+	local Left_HitPhysics   = CoordinateFuse(-Root_P+Left, true)
+	local Right_HitPhysics  = CoordinateFuse(-Root_P+Right, false)
+	local Front_HitPhysics  = CoordinateFuse(-Root_P+Front, false)
+	local Back_HitPhysics   = CoordinateFuse(-Root_P+Back, true)
 
 	return {
-		Top_Hit = V3(Object_P.x+max_sX,Top.p.y,Object_P.z+max_sZ),
-
+		Top    = V3(Object_P.x+Top_HitPhysics.x, Top.y, Object_P.z+Top_HitPhysics.z),
+		Bottom = V3(Object_P.x+Bottom_HitPhysics.x, Bottom.y, Object_P.z+Bottom_HitPhysics.z),
+		Front  = V3(Object_P.x+Front_HitPhysics.x, Object_P.y+Front_HitPhysics.y, Front.z),
+		Back   = V3(Object_P.x+Back_HitPhysics.x, Object_P.y+Front_HitPhysics.y, Front.z),
+		Left   = V3(Left.x, Object_P.y+Left_HitPhysics.y, Object_P.z+Left_HitPhysics.z),
+		Right  = V3(Right.x, Object_P.y+Right_HitPhysics.y, Object_P.z+Right_HitPhysics.z)
 	}
 end
 
+local Test = New('Part', workspace, {
+	Color = Color3.new(1,0,0),
+	Anchored = true
+})
 local function Detect_Collision(Object)
-	local Collision = Get_Sides(Object)
-
+	local Collision = Collision_Solver(Object, Get_Sides(Object))
+	if Object.Name == "Baseplate" then
+		Test.Position = Collision.Top
+	end
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
-RunService.Heartbeat:Connect(function()
+RunService.Stepped:Connect(function()
 	if Using_Freecam then
 		Controls(Freecam, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
 	else
@@ -249,12 +271,11 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-RunService.Stepped:Connect(function(deltaTime)
+RunService.Heartbeat:Connect(function(deltaTime)
 	local Objects = GetWorkspace()
 
 	for i = 1, #Objects do
 		local Object = Objects[i]
-
 		if Object.CanCollide then
 			Detect_Collision(Object)
 		end
