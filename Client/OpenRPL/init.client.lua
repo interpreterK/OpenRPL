@@ -203,12 +203,8 @@ local function Get_Sides(Object)
 	}
 end
 
-local function clamp2(n1, n2, n3)
-	local n = 0
-	pcall(function()
-		n = math.clamp(n1, n2, n3)
-	end)
-	return n
+local function E_clamp(n1, n2, n3) --Errorless clamp
+	return max(n1, min(n2, n3))
 end
 
 local function Collision_Solver(Object, Sides)
@@ -222,41 +218,39 @@ local function Collision_Solver(Object, Sides)
 	local Back     = Object_P+V3(0,0,Sides.Z_NEG)
 
 	--s:Size ~CORD
-	local function CoordinateFuse(Point, Inverse)
+	local function PointConnect(Point, Inverse)
 		local abs_size_X = Inverse and abs(Sides.X_NEG) or abs(Sides.X_POS)
 		local abs_size_Y = Inverse and abs(Sides.Y_NEG) or abs(Sides.Y_POS)
 		local abs_size_Z = Inverse and abs(Sides.Z_NEG) or abs(Sides.Z_POS)
-		local max_sX = clamp2(-abs_size_X, -Point.x, abs_size_X)
-		local max_sY = clamp2(-abs_size_Y, -Point.y, abs_size_Y)
-		local max_sZ = clamp2(-abs_size_Z, -Point.z, abs_size_Z)
+		local max_sX = E_clamp(-abs_size_X, -Point.x, abs_size_X)
+		local max_sY = E_clamp(-abs_size_Y, -Point.y, abs_size_Y)
+		local max_sZ = E_clamp(-abs_size_Z, -Point.z, abs_size_Z)
 		return {x = max_sX, y = max_sY, z = max_sZ}
 	end
 
-	local Top_HitPhysics    = CoordinateFuse(-Root_P+Top, false)
-	local Bottom_HitPhysics = CoordinateFuse(-Root_P+Bottom, true)
-	local Left_HitPhysics   = CoordinateFuse(-Root_P+Left, true)
-	local Right_HitPhysics  = CoordinateFuse(-Root_P+Right, false)
-	local Front_HitPhysics  = CoordinateFuse(-Root_P+Front, false)
-	local Back_HitPhysics   = CoordinateFuse(-Root_P+Back, true)
+	local Top_Hit    = PointConnect(-Root_P+Top,    false)
+	local Bottom_Hit = PointConnect(-Root_P+Bottom, true)
+	local Left_Hit   = PointConnect(-Root_P+Left,   true)
+	local Right_Hit  = PointConnect(-Root_P+Right,  false)
+	local Front_Hit  = PointConnect(-Root_P+Front,  false)
+	local Back_Hit   = PointConnect(-Root_P+Back,   true)
 
 	return {
-		Top    = V3(Object_P.x+Top_HitPhysics.x, Top.y, Object_P.z+Top_HitPhysics.z),
-		Bottom = V3(Object_P.x+Bottom_HitPhysics.x, Bottom.y, Object_P.z+Bottom_HitPhysics.z),
-		Front  = V3(Object_P.x+Front_HitPhysics.x, Object_P.y+Front_HitPhysics.y, Front.z),
-		Back   = V3(Object_P.x+Back_HitPhysics.x, Object_P.y+Front_HitPhysics.y, Front.z),
-		Left   = V3(Left.x, Object_P.y+Left_HitPhysics.y, Object_P.z+Left_HitPhysics.z),
-		Right  = V3(Right.x, Object_P.y+Right_HitPhysics.y, Object_P.z+Right_HitPhysics.z)
+		Top    = V3(Object_P.x+Top_Hit.x, Top.y, Object_P.z+Top_Hit.z),
+		Bottom = V3(Object_P.x+Bottom_Hit.x, Bottom.y, Object_P.z+Bottom_Hit.z),
+		Front  = V3(Object_P.x+Front_Hit.x, Object_P.y+Front_Hit.y, Front.z),
+		Back   = V3(Object_P.x+Back_Hit.x, Object_P.y+Front_Hit.y, Front.z),
+		Left   = V3(Left.x, Object_P.y+Left_Hit.y, Object_P.z+Left_Hit.z),
+		Right  = V3(Right.x, Object_P.y+Right_Hit.y, Object_P.z+Right_Hit.z)
 	}
 end
 
-local Test = New('Part', workspace, {
-	Color = Color3.new(1,0,0),
-	Anchored = true
-})
 local function Detect_Collision(Object)
 	local Collision = Collision_Solver(Object, Get_Sides(Object))
-	if Object.Name == "Baseplate" then
-		Test.Position = Collision.Top
+	local Mover_p = Root.Position
+
+	if Mover_p.y == Collision.Top.y then
+		Root.Position=V3(Root.Position.x,Collision.Top.y,Root.Position.z)
 	end
 end
 
