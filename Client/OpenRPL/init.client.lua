@@ -36,11 +36,13 @@ end
 local Players    = S.Players
 local RunService = S.RunService
 local UIS        = S.UserInputService
+local Storage    = S.ReplicatedStorage
 
 local V3 = Vector3.new
 local CN, lookAt = CFrame.new, CFrame.lookAt
 local insert = table.insert
 local abs, min, max = math.abs, math.min, math.max
+local resume, create = coroutine.resume, coroutine.create
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
 
 -- Camera
@@ -84,6 +86,12 @@ local Freecam = New('Part', Camera, {
 	Transparency = 1,
 	Size = Vector3.zero
 })
+--
+
+-- PhysicsList
+local PhysicsList_Remote = Storage:WaitForChild("OpenRPL"):WaitForChild("PhysicsList")
+local PhysicsList = PhysicsList_Remote:InvokeServer()
+print(PhysicsList)
 --
 
 -- Player I/O
@@ -168,29 +176,6 @@ end
 --
 
 -- Step loops & Physics
-local Valid = { --Not all basepart's are supported yet
-	Parts = {'Part','TrussPart'},
-	Shapes = {'Block'}
-}
-
-local function GetWorkspace()
-	local Descendants = workspace:GetDescendants()
-	local Parts = {}
-	for A_n = 1, #Descendants do
-		for P_n = 1, #Valid.Parts do
-			local Part = Descendants[A_n]
-
-			for S_n = 1, #Valid.Shapes do
-				local Shape = Valid.Shapes[S_n]
-				if Part.ClassName == Valid.Parts[P_n] and Part.Shape == Enum.PartType[Shape] then
-					insert(Parts, Part)
-				end
-			end
-		end
-	end
-	return Parts
-end
-
 local function Get_Sides(Object)
 	local x, y, z = Object.Size.x, Object.Size.y, Object.Size.z
 	local Axis = {
@@ -201,7 +186,7 @@ local function Get_Sides(Object)
 		Z_POS = z/2,  --Front
 		Z_NEG = z/-2  --Back
 	}
-	local Normalized = {
+	local Matrix = {
 		X_POS = V3(Axis.X_POS,0,0),
 		X_NEG = V3(Axis.X_NEG,0,0),
 		Y_POS = V3(0,Axis.Y_POS,0),
@@ -209,7 +194,7 @@ local function Get_Sides(Object)
 		Z_POS = V3(0,0,Axis.Z_POS),
 		Z_NEG = V3(0,0,Axis.Z_NEG)
 	}
-	return {Axis = Axis, Normalized = Normalized}
+	return {Axis = Axis, Matrix = Matrix}
 end
 
 local function E_clamp(n1, n2, n3) --Errorless clamp
@@ -220,12 +205,12 @@ local function Collision_Solver(Object, Sides)
 	local Object_P = Object.Position
 	local Root_P   = Root.Position
 
-	local Left   = Object_P+Sides.Normalized.X_POS
-	local Right  = Object_P+Sides.Normalized.X_NEG
-	local Top    = Object_P+Sides.Normalized.Y_POS
-	local Bottom = Object_P+Sides.Normalized.Y_NEG
-	local Front  = Object_P+Sides.Normalized.Z_POS
-	local Back   = Object_P+Sides.Normalized.Z_NEG
+	local Left   = Object_P+Sides.Matrix.X_POS
+	local Right  = Object_P+Sides.Matrix.X_NEG
+	local Top    = Object_P+Sides.Matrix.Y_POS
+	local Bottom = Object_P+Sides.Matrix.Y_NEG
+	local Front  = Object_P+Sides.Matrix.Z_POS
+	local Back   = Object_P+Sides.Matrix.Z_NEG
 	--s:Size ~CORD
 	local function PointConnect(Point, Inverse)
 		local abs_size_X = Inverse and abs(Sides.Axis.X_NEG) or abs(Sides.Axis.X_POS)
@@ -289,13 +274,14 @@ RunService.Stepped:Connect(function()
 end)
 
 RunService.Heartbeat:Connect(function(deltaTime)
-	local Objects = GetWorkspace()
-
-	for i = 1, #Objects do
-		local Object = Objects[i]
+	for i = 1, #PhysicsList do
+		local Object = PhysicsList[i]
 		if Object.CanCollide then
 			Detect_Collision(Object)
 		end
 	end
+	resume(create(function()
+		PhysicsList = PhysicsList_Remote:InvokeServer()
+	end))
 end)
 --
