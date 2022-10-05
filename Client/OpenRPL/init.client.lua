@@ -245,11 +245,15 @@ local function Collision_Solver(Object, Sides)
 end
 
 local function Vector_E_clamp(v1, v2, v3)
-	local X_1, X_2, X_3 = E_clamp(v1.x,v1.y,v1.z), E_clamp(v2.x,v2.y,v3.z), E_clamp(v3.x,v3.y,v3.z)
+	local X_1, X_2, X_3 = E_clamp(v1.x,v1.y,v1.z), E_clamp(v2.x,v2.y,v2.z), E_clamp(v3.x,v3.y,v3.z)
 	local C_X = X_1>=X_2 and X_1 or X_2
 	local C_Y = C_X<=X_2 and X_2 or C_X
 	local C_Z = X_3>=C_Y and X_3 or C_Y
 	return {x = C_X, y = C_Y, z = C_Z}
+end
+
+local function Vector_min(v1, v2)
+
 end
 
 local function Detect_Collision(Object)
@@ -259,9 +263,13 @@ local function Detect_Collision(Object)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
 	local Mover_p = Root.Position
-	Test.Position = Collision_Object.Top
+	local Center = Object.Position
 
-	local Mover_p_fake = Vector_E_clamp()
+	if Object.Name == "AxisTest" then
+		Test.Position = Collision_Object.Top
+		local DepthY = (Center-Collision_Object.Top-Mover_p).Magnitude/Object.Size.y
+		print(DepthY)
+	end
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
@@ -279,7 +287,7 @@ RunService.Heartbeat:Connect(function(deltaTime)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
-			Detect_Collision(Object)
+			Detect_Collision(Object)	
 		end
 		if not Object.Anchored then
 			--Gravity & Velocity stuff
