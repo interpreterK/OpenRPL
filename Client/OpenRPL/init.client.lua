@@ -76,6 +76,11 @@ local Root = New('Part', workspace, {
     Anchored = true,
     CanCollide = false
 })
+local Test = New('Part', workspace, {
+	Color = Color3.new(1,0,0),
+	Size = V3(2,0,2),
+	Anchored = true
+})
 SetView(Root)
 --
 
@@ -141,6 +146,8 @@ end)
 
 
 -- Player movement
+local WalkSpeed = 50
+
 local Movement  = {
 	x = Vector3.xAxis/10,
 	y = Vector3.yAxis,
@@ -176,6 +183,10 @@ end
 --
 
 -- Step loops & Physics
+local function E_clamp(n1, n2, n3) --Errorless clamp
+	return max(n1, min(n2, n3))
+end
+
 local function Get_Sides(Object)
 	local x, y, z = Object.Size.x, Object.Size.y, Object.Size.z
 	local Axis = {
@@ -195,10 +206,6 @@ local function Get_Sides(Object)
 		Z_NEG = V3(0,0,Axis.Z_NEG)
 	}
 	return {Axis = Axis, Matrix = Matrix}
-end
-
-local function E_clamp(n1, n2, n3) --Errorless clamp
-	return max(n1, min(n2, n3))
 end
 
 local function Collision_Solver(Object, Sides)
@@ -221,14 +228,12 @@ local function Collision_Solver(Object, Sides)
 		local max_sZ = E_clamp(-abs_size_Z, -Point.z, abs_size_Z)
 		return {x = max_sX, y = max_sY, z = max_sZ}
 	end
-
 	local Top_Hit    = PointConnect(-Root_P+Top,    false)
 	local Bottom_Hit = PointConnect(-Root_P+Bottom, true)
 	local Left_Hit   = PointConnect(-Root_P+Left,   true)
 	local Right_Hit  = PointConnect(-Root_P+Right,  false)
 	local Front_Hit  = PointConnect(-Root_P+Front,  false)
 	local Back_Hit   = PointConnect(-Root_P+Back,   true)
-
 	return {
 		Top    = V3(Object_P.x+Top_Hit.x, Top.y, Object_P.z+Top_Hit.z),
 		Bottom = V3(Object_P.x+Bottom_Hit.x, Bottom.y, Object_P.z+Bottom_Hit.z),
@@ -239,11 +244,13 @@ local function Collision_Solver(Object, Sides)
 	}
 end
 
-local Test = New('Part', workspace, {
-	Color = Color3.new(1,0,0),
-	Size = V3(2,0,2),
-	Anchored = true
-})
+local function Vector_E_clamp(v1, v2, v3)
+	local X_1, X_2, X_3 = E_clamp(v1.x,v1.y,v1.z), E_clamp(v2.x,v2.y,v3.z), E_clamp(v3.x,v3.y,v3.z)
+	local C_X = X_1>=X_2 and X_1 or X_2
+	local C_Y = C_X<=X_2 and X_2 or C_X
+	local C_Z = X_3>=C_Y and X_3 or C_Y
+	return {x = C_X, y = C_Y, z = C_Z}
+end
 
 local function Detect_Collision(Object)
 	local Object_Sides     = Get_Sides(Object)
@@ -252,14 +259,9 @@ local function Detect_Collision(Object)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
 	local Mover_p = Root.Position
+	Test.Position = Collision_Object.Top
 
-	if Object.Name == 'Baseplate' then
-		Test.Position = Collision_Object.Top
-
-		if (Collision_Object.Top-Collision_Root.Bottom).y>=Collision_Object.Top.y then
-			Root.Position=V3(Root.Position.x, Collision_Object.Top.y, Root.Position.z)
-		end
-	end
+	local Mover_p_fake = Vector_E_clamp()
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
@@ -278,6 +280,10 @@ RunService.Heartbeat:Connect(function(deltaTime)
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
 			Detect_Collision(Object)
+		end
+		if not Object.Anchored then
+			--Gravity & Velocity stuff
+
 		end
 	end
 	resume(create(function()
