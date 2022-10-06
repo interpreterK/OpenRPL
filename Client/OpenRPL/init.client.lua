@@ -246,18 +246,6 @@ local function Collision_Solver(Object, Sides)
 	}
 end
 
-local function Vector_E_clamp(v1, v2, v3)
-	local X_1, X_2, X_3 = E_clamp(v1.x,v1.y,v1.z), E_clamp(v2.x,v2.y,v2.z), E_clamp(v3.x,v3.y,v3.z)
-	local C_X = X_1>=X_2 and X_1 or X_2
-	local C_Y = C_X<=X_2 and X_2 or C_X
-	local C_Z = X_3>=C_Y and X_3 or C_Y
-	return {x = C_X, y = C_Y, z = C_Z}
-end
-
-local function Vector_min(v1, v2)
-
-end
-
 local function Detect_Collision(Object)
 	local Mover_p = Root.Position
 	local Center = Object.Position
@@ -268,17 +256,11 @@ local function Detect_Collision(Object)
 	local Collision_Object = Collision_Solver(Object, Object_Sides)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
-	if Object.Name == "Big" then
-		Test.Position = Collision_Object.Top
-		--[[
-		local Hit_Y     = (Collision_Object.Top+Mover_p).Unit+(ObjectSize/2)
-		local FromHit_Y = -( (Hit_Y-Mover_p).Unit.y*(Hit_Y+Mover_p).Magnitude )
+	local Bottom_Hit = Object_Sides.Axis.Y_POS+Center.y-Collision_Root.Bottom.y
 
-		local DepthY = (Center-Hit_Y).Magnitude
-		print(DepthY, Object_Sides.Top)
-		]]
-		print(abs_size, ObjectSize)
-	end
+	
+
+	Test.Position = Collision_Object.Top
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
