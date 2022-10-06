@@ -96,7 +96,6 @@ local Freecam = New('Part', Camera, {
 -- PhysicsList
 local PhysicsList_Remote = Storage:WaitForChild("OpenRPL"):WaitForChild("PhysicsList")
 local PhysicsList = PhysicsList_Remote:InvokeServer()
-print(PhysicsList)
 --
 
 -- Player I/O
@@ -151,7 +150,8 @@ local WalkSpeed = 50
 local Movement  = {
 	x = Vector3.xAxis/10,
 	y = Vector3.yAxis,
-	z = Vector3.zAxis/10
+	z = Vector3.zAxis/10,
+	Alpha = .5
 }
 
 local function Pointer_Direction()
@@ -162,16 +162,16 @@ end
 
 local function Controls(Part, Forward_Direction, Right_Direction) --Required to run in a loop
 	if Holding.w then
-		Part.Position+=Forward_Direction+Movement.z
+		Part.Position=Part.Position:Lerp(Part.Position+Forward_Direction+Movement.z, Movement.Alpha)
 	end
 	if Holding.s then
-		Part.Position-=Forward_Direction+Movement.z
+		Part.Position=Part.Position:Lerp(Part.Position-Forward_Direction+Movement.z, Movement.Alpha)
 	end
 	if Holding.d then
-		Part.Position+=Right_Direction+Movement.x
+		Part.Position=Part.Position:Lerp(Part.Position+Right_Direction+Movement.x, Movement.Alpha)
 	end
 	if Holding.a then
-		Part.Position-=Right_Direction+Movement.x
+		Part.Position=Part.Position:Lerp(Part.Position-Right_Direction+Movement.x, Movement.Alpha)
 	end
 	if Holding.e then
 		Part.Position+=Movement.y
@@ -187,7 +187,7 @@ local function E_clamp(n1, n2, n3) --Errorless clamp
 	return max(n1, min(n2, n3))
 end
 
-local function Get_Sides(Object)
+function Get_Sides(Object)
 	local x, y, z = Object.Size.x, Object.Size.y, Object.Size.z
 	local Axis = {
 		X_POS = x/2,  --Left
@@ -218,6 +218,7 @@ local function Collision_Solver(Object, Sides)
 	local Bottom = Object_P+Sides.Matrix.Y_NEG
 	local Front  = Object_P+Sides.Matrix.Z_POS
 	local Back   = Object_P+Sides.Matrix.Z_NEG
+
 	--s:Size ~CORD
 	local function PointConnect(Point, Inverse)
 		local abs_size_X = Inverse and abs(Sides.Axis.X_NEG) or abs(Sides.Axis.X_POS)
@@ -228,6 +229,7 @@ local function Collision_Solver(Object, Sides)
 		local max_sZ = E_clamp(-abs_size_Z, -Point.z, abs_size_Z)
 		return {x = max_sX, y = max_sY, z = max_sZ}
 	end
+
 	local Top_Hit    = PointConnect(-Root_P+Top,    false)
 	local Bottom_Hit = PointConnect(-Root_P+Bottom, true)
 	local Left_Hit   = PointConnect(-Root_P+Left,   true)
@@ -257,18 +259,25 @@ local function Vector_min(v1, v2)
 end
 
 local function Detect_Collision(Object)
+	local Mover_p = Root.Position
+	local Center = Object.Position
+	local ObjectSize = Object.Size
+
 	local Object_Sides     = Get_Sides(Object)
 	local Root_Sides       = Get_Sides(Root)
 	local Collision_Object = Collision_Solver(Object, Object_Sides)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
-	local Mover_p = Root.Position
-	local Center = Object.Position
-
-	if Object.Name == "AxisTest" then
+	if Object.Name == "Big" then
 		Test.Position = Collision_Object.Top
-		local DepthY = (Center-Collision_Object.Top-Mover_p).Magnitude/Object.Size.y
-		print(DepthY)
+		--[[
+		local Hit_Y     = (Collision_Object.Top+Mover_p).Unit+(ObjectSize/2)
+		local FromHit_Y = -( (Hit_Y-Mover_p).Unit.y*(Hit_Y+Mover_p).Magnitude )
+
+		local DepthY = (Center-Hit_Y).Magnitude
+		print(DepthY, Object_Sides.Top)
+		]]
+		print(abs_size, ObjectSize)
 	end
 end
 
@@ -283,7 +292,7 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
-RunService.Heartbeat:Connect(function(deltaTime)
+RunService.Heartbeat:Connect(function(dt)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
