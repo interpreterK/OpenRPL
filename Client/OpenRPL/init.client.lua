@@ -40,7 +40,6 @@ local Storage    = S.ReplicatedStorage
 
 local V3 = Vector3.new
 local CN, lookAt = CFrame.new, CFrame.lookAt
-local insert = table.insert
 local abs, min, max = math.abs, math.min, math.max
 local resume, create = coroutine.resume, coroutine.create
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
@@ -68,19 +67,66 @@ end
 --
 
 -- The player
--- Maybe limbs sometime?
 local Root = New('Part', workspace, {
     Position = World_Origin,
 	Size = V3(2,2,1),
-	Color = Color3.new(1,1,1),
     Anchored = true,
     CanCollide = false
 })
-local Test = New('Part', workspace, {
+local Torso = New('Part', Root, {
+    Position = World_Origin,
+	Size = V3(2,2,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .5
+})
+local Head = New('Part', Root, {
+    Position = World_Origin,
+	Size = V3(2,1,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .1
+}) 
+New('Decal', Head, {Texture = 'rbxasset://textures/face.png'}) --silly
+local LeftArm = New('Part', Root, {
+	Position = World_Origin,
+	Size = V3(1,2,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .1,
+    Name = 'LeftArm'
+})
+local RightArm = New('Part', Root, {
+	Position = World_Origin,
+	Size = V3(1,2,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .1,
+    Name = 'RightArm'
+})
+local LeftLeg = New('Part', Root, {
+	Position = World_Origin,
+	Size = V3(1,2,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .1,
+    LeftLeg = 'LeftLeg'
+})
+local RightLeg = New('Part', Root, {
+	Position = World_Origin,
+	Size = V3(1,2,1),
+    Anchored = true,
+    CanCollide = false,
+    Transparency = .1,
+    Name = 'RightLeg'
+})
+
+local Test = New('Part', Root, {
 	Color = Color3.new(1,0,0),
 	Size = V3(2,0,2),
 	Anchored = true
 })
+
 SetView(Root)
 --
 
@@ -119,6 +165,10 @@ function KeyDown.f()
 	end
 	print("Freecam=",Using_Freecam)
 end
+
+function KeyDown.backquote()
+	script.Parent.ConsoleVisibility:Fire()
+end
 --
 
 UIS.InputBegan:Connect(function(input, gp)
@@ -142,7 +192,6 @@ UIS.InputChanged:Connect(function(input, _)
 		Pointer3D = input.Position
 	end
 end)
-
 
 -- Player movement
 local WalkSpeed = 50
@@ -187,7 +236,7 @@ local function E_clamp(n1, n2, n3) --Errorless clamp
 	return max(n1, min(n2, n3))
 end
 
-function Get_Sides(Object)
+local function Get_Sides(Object)
 	local x, y, z = Object.Size.x, Object.Size.y, Object.Size.z
 	local Axis = {
 		X_POS = x/2,  --Left
@@ -205,7 +254,7 @@ function Get_Sides(Object)
 		Z_POS = V3(0,0,Axis.Z_POS),
 		Z_NEG = V3(0,0,Axis.Z_NEG)
 	}
-	return {Axis = Axis, Matrix = Matrix}
+	return {Axis=Axis,Matrix=Matrix}
 end
 
 local function Collision_Solver(Object, Sides)
@@ -256,11 +305,15 @@ local function Detect_Collision(Object)
 	local Collision_Object = Collision_Solver(Object, Object_Sides)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
-	local Bottom_Hit = Object_Sides.Axis.Y_POS+Center.y-Collision_Root.Bottom.y
+	local Bottom_Hit = Object_Sides.Matrix.Y_POS+Center-Collision_Root.Bottom
 
 	
+end
 
-	Test.Position = Collision_Object.Top
+local function Glue(P1, P2, C0)
+	C0 = C0 or CN()
+	P1.CFrame=P2.CFrame*C0
+	return {P1=P1,P2=P2,C0=C0}
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
@@ -278,7 +331,7 @@ RunService.Heartbeat:Connect(function(dt)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
-			Detect_Collision(Object)	
+			Detect_Collision(Object)
 		end
 		if not Object.Anchored then
 			--Gravity & Velocity stuff
@@ -288,5 +341,18 @@ RunService.Heartbeat:Connect(function(dt)
 	resume(create(function()
 		PhysicsList = PhysicsList_Remote:InvokeServer()
 	end))
+end)
+
+--Rig & Animations
+RunService.RenderStepped:Connect(function()
+	local t = tick()
+	local RJ = Glue(Torso, Root)
+	local NK = Glue(Head, Root, CN(0,1.5,0))
+	local RS = Glue(RightArm, Root, CN(1.5,0,0))
+	local LS = Glue(LeftArm, Root, CN(-1.5,0,0))
+	local RH = Glue(RightLeg, Root, CN(-.5,-2,0))
+	local LH = Glue(LeftLeg, Root, CN(.5,-2,0))
+
+
 end)
 --
