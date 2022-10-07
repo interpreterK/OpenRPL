@@ -13,6 +13,7 @@ local Storage = S.ReplicatedStorage
 local Player = Players.LocalPlayer
 
 local find, remove = table.find, table.remove
+local resume, create = coroutine.resume, coroutine.create
 local C3 = Color3.new
 
 local Console = Storage:WaitForChild("Console")
@@ -67,6 +68,7 @@ local Commands = {
 local function Process_Command(str)
 	local args = str:split(' ')
 	local low1 = args[1] and args[1]:lower()
+	low1 = low1:gsub(' ',''):gsub('\t','')
 
 	if low1 ~= '' then
 		CreateLog('>'..args[1])
@@ -80,16 +82,22 @@ local function Process_Command(str)
 			CreateLog('Unknown Command: "'..args[1]..'".', C3(1,0,0))
 		end
 	end
+	Input:CaptureFocus()
 	Input.Text = ''
 end
 
-local function Visible()
+local function Visible(is_focused)
 	List.Visible = not List.Visible
 	Input.Visible = not Input.Visible
 
-	if Input.Visible then
-		task.wait()
-		Input:CaptureFocus()
+	if not is_focused then
+		if Input.Visible then
+			task.wait()
+			Input:CaptureFocus()
+		end
+	else
+		Input:ReleaseFocus()
+		Input.Text = ''
 	end
 end
 Input.FocusLost:Connect(function(enterPressed)

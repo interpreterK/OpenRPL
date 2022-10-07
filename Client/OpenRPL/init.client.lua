@@ -146,17 +146,20 @@ local PhysicsList = PhysicsList_Remote:InvokeServer()
 
 -- Player I/O
 local Holding = {}
-local KeyDown = {}
+local KeyDown = {
+	gp = {},
+	nongp = {}
+}
 local Pointer3D = Vector3.zero
 local Using_Freecam = false
 
 -- Key binds
-function KeyDown.g()
+function KeyDown.nongp.g()
 	Flying = not Flying
 	print("Flying=",Flying)
 end
 
-function KeyDown.f()
+function KeyDown.nongp.f()
 	Using_Freecam = not Using_Freecam
 	if Using_Freecam then
 		SetView(Freecam)
@@ -166,20 +169,24 @@ function KeyDown.f()
 	print("Freecam=",Using_Freecam)
 end
 
-function KeyDown.backquote()
-	script.Parent.ConsoleVisibility:Fire()
+function KeyDown.nongp.backquote()
+	script.Parent.ConsoleVisibility:Fire(false)
+end
+function KeyDown.gp.backquote()
+	script.Parent.ConsoleVisibility:Fire(true)
 end
 --
 
-UIS.InputBegan:Connect(function(input, gp)
-	if not gp then
-		local KC = input.KeyCode.Name:lower()
+UIS.InputBegan:Connect(function(input, _gp)
+	local gp = _gp and 'gp' or 'nongp'
+	local KC = input.KeyCode.Name:lower()
+	
+	if not _gp then
 		Holding[KC] = true
-
-		local Bind = KeyDown[KC]
-		if Bind then
-			Bind()
-		end
+	end	
+	local Bind = KeyDown[gp][KC]
+	if Bind then
+		Bind()
 	end
 end)
 UIS.InputEnded:Connect(function(input, gp)
