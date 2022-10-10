@@ -40,20 +40,16 @@ local function CreateLog(str, color)
 	Output_obj.Parent = List
 end
 
-local function Decision(inp)
-	if inp == '1' or inp == 'true' or inp == 'yes' then
-		return true
-	end
-	if inp == '0' or inp == 'false' or inp == 'no' then
-		return false
-	end
-	return
+local function Decision(args)
+	local arg = args[2] and args[2]:lower()
+	return arg == '1' or arg == 'true' or arg == 'yes' or arg == 'y' and true or
+	arg == '0' or arg == 'false' or arg == 'no' or arg == 'n' and false or
+	nil
 end
 
 local function Visual_Collisions(args)
-	local arg = args[2] and args[2]:lower()
-	local realBool = Decision(arg)
-	if realBool ~= nil then
+	local bool = Decision(args)
+	if bool ~= nil then
 		
 	end
 end
@@ -86,7 +82,7 @@ local function Process_Command(str)
 	Input.Text = ''
 end
 
-local function Visible(is_focused)
+local function Toggle(is_focused)
 	List.Visible = not List.Visible
 	Input.Visible = not Input.Visible
 
@@ -100,13 +96,22 @@ local function Visible(is_focused)
 		Input.Text = ''
 	end
 end
+
+local function Func_run(func, ...)
+	func = func:lower()
+	if func == 'toggle_visible' then
+		Toggle(...)
+	elseif func == '' then
+		
+	end
+end
 Input.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
 		Process_Command(Input.Text)
 	end
 end)
 
-local VisibleBind = Instance.new("BindableEvent")
-VisibleBind.Name = "ConsoleVisibility"
-VisibleBind.Parent = script.Parent
-VisibleBind.Event:Connect(Visible)
+local Command = Instance.new("BindableEvent")
+Command.Name = "Console"
+Command.Parent = script.Parent
+Command.Event:Connect(Func_run)

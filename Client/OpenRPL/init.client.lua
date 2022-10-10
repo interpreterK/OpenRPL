@@ -78,16 +78,17 @@ local Torso = New('Part', Root, {
 	Size = V3(2,2,1),
     Anchored = true,
     CanCollide = false,
-    Transparency = .5
+    Transparency = .5,
+    Name = 'Torso'
 })
 local Head = New('Part', Root, {
     Position = World_Origin,
 	Size = V3(2,1,1),
     Anchored = true,
     CanCollide = false,
-    Transparency = .1
+    Transparency = .1,
+    Name = 'Head'
 }) 
-New('Decal', Head, {Texture = 'rbxasset://textures/face.png'}) --silly
 local LeftArm = New('Part', Root, {
 	Position = World_Origin,
 	Size = V3(1,2,1),
@@ -120,14 +121,18 @@ local RightLeg = New('Part', Root, {
     Transparency = .1,
     Name = 'RightLeg'
 })
-
 local Test = New('Part', Root, {
 	Color = Color3.new(1,0,0),
 	Size = V3(2,0,2),
 	Anchored = true
 })
 
+local Ball = New('Part', workspace, {
+
+})
+
 SetView(Root)
+New('Decal', Head, {Texture = 'rbxasset://textures/face.png'}) --silly
 --
 
 -- Freecam
@@ -170,10 +175,10 @@ function KeyDown.nongp.f()
 end
 
 function KeyDown.nongp.backquote()
-	script.Parent.ConsoleVisibility:Fire(false)
+	script.Parent.ConsoleVisibility:Fire('toggle_visible', false)
 end
 function KeyDown.gp.backquote()
-	script.Parent.ConsoleVisibility:Fire(true)
+	script.Parent.ConsoleVisibility:Fire('toggle_visible', true)
 end
 --
 
@@ -276,7 +281,7 @@ local function Collision_Solver(Object, Sides)
 	local Back   = Object_P+Sides.Matrix.Z_NEG
 
 	--s:Size ~CORD
-	local function PointConnect(Point, Inverse)
+	local function rect(Point, Inverse)
 		local abs_size_X = Inverse and abs(Sides.Axis.X_NEG) or abs(Sides.Axis.X_POS)
 		local abs_size_Y = Inverse and abs(Sides.Axis.Y_NEG) or abs(Sides.Axis.Y_POS)
 		local abs_size_Z = Inverse and abs(Sides.Axis.Z_NEG) or abs(Sides.Axis.Z_POS)
@@ -286,12 +291,12 @@ local function Collision_Solver(Object, Sides)
 		return {x = max_sX, y = max_sY, z = max_sZ}
 	end
 
-	local Top_Hit    = PointConnect(-Root_P+Top,    false)
-	local Bottom_Hit = PointConnect(-Root_P+Bottom, true)
-	local Left_Hit   = PointConnect(-Root_P+Left,   true)
-	local Right_Hit  = PointConnect(-Root_P+Right,  false)
-	local Front_Hit  = PointConnect(-Root_P+Front,  false)
-	local Back_Hit   = PointConnect(-Root_P+Back,   true)
+	local Top_Hit    = rect(-Root_P+Top,    false)
+	local Bottom_Hit = rect(-Root_P+Bottom, true)
+	local Left_Hit   = rect(-Root_P+Left,   true)
+	local Right_Hit  = rect(-Root_P+Right,  false)
+	local Front_Hit  = rect(-Root_P+Front,  false)
+	local Back_Hit   = rect(-Root_P+Back,   true)
 	return {
 		Top    = V3(Object_P.x+Top_Hit.x, Top.y, Object_P.z+Top_Hit.z),
 		Bottom = V3(Object_P.x+Bottom_Hit.x, Bottom.y, Object_P.z+Bottom_Hit.z),
@@ -353,13 +358,14 @@ end)
 --Rig & Animations
 RunService.RenderStepped:Connect(function()
 	local t = tick()
-	local RJ = Glue(Torso, Root)
-	local NK = Glue(Head, Root, CN(0,1.5,0))
-	local RS = Glue(RightArm, Root, CN(1.5,0,0))
-	local LS = Glue(LeftArm, Root, CN(-1.5,0,0))
-	local RH = Glue(RightLeg, Root, CN(-.5,-2,0))
-	local LH = Glue(LeftLeg, Root, CN(.5,-2,0))
+	--local float_test = (1.5*math.cos(t*2))/2
+	local RJ = Glue(Torso,    Root)
+	local NK = Glue(Head,     Torso, CN(0,1.5,0))
+	local RS = Glue(RightArm, Torso, CN(1.5,0,0))
+	local LS = Glue(LeftArm,  Torso, CN(-1.5,0,0))
+	local RH = Glue(RightLeg, Torso, CN(-.5,-2,0))
+	local LH = Glue(LeftLeg,  Torso, CN(.5,-2,0))
 
-
+	
 end)
 --
