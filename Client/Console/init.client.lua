@@ -7,14 +7,16 @@ local S = setmetatable({}, {
 	end
 })
 
-local Players = S.Players
-local Storage = S.ReplicatedStorage
+local Players    = S.Players
+local Storage    = S.ReplicatedStorage
+local LogService = S.LogService
 
 local Player = Players.LocalPlayer
 
 local find, remove = table.find, table.remove
 local resume, create = coroutine.resume, coroutine.create
-local C3 = Color3.new
+local wait = task.wait
+local C3, rgb = Color3.new, Color3.fromRGB
 
 local Console = Storage:WaitForChild("Console")
 Console.Parent = Player:WaitForChild("PlayerGui")
@@ -40,6 +42,29 @@ local function CreateLog(str, color)
 	Output_obj.Parent = List
 end
 
+local function build_tuple_str(...)
+	local args = {...}
+	local build, N = args[1] and args[1] or '', #args
+	if N>1 then
+		for i = 2,N do
+			build = build..' '..tostring(args[i])
+		end
+	end
+	return build
+end
+local print = function(...)
+	local build = build_tuple_str(...)
+	CreateLog(build, rgb(163,162,165))
+end
+local warn = function(...)
+	local build = build_tuple_str(...)
+	CreateLog(build, rgb(253,128,8))
+end
+local error = function(...)
+	local build = build_tuple_str(...)
+	CreateLog(build, C3(1,0,0))
+end
+
 local function Decision(args)
 	local arg = args[2] and args[2]:lower()
 	return arg == '1' or arg == 'true' or arg == 'yes' or arg == 'y' and true or
@@ -58,6 +83,19 @@ local Commands = {
 	["clear"] = ClearOutput,
 	["visual_collisions"] = Visual_Collisions,
 
+	--outputs
+	['print'] = function(args)
+		remove(args,1)
+		print(unpack(args))
+	end,
+	['warn'] = function(args)
+		remove(args,1)
+		warn(unpack(args))
+	end,
+	['error'] = function(args)
+		remove(args,1)
+		error(unpack(args))
+	end,
 	--testings
 	["!"] = function() CreateLog() end
 }
@@ -68,18 +106,26 @@ local function Process_Command(str)
 
 	if low1 ~= '' then
 		CreateLog('>'..args[1])
-		if Commands[low1] then
-			Commands[low1](args)
+		local Command = Commands[low1]
+
+		if Command then
+			Command(args)
+
+		--Special's
 		elseif low1 == 'help' or low1 == '?' then
 			for c in next, Commands do
 				CreateLog(c)
 			end
+
+			--Indicate the help commands
+			CreateLog('help / ?')
 		else
 			CreateLog('Unknown Command: "'..args[1]..'".', C3(1,0,0))
 		end
 	end
-	Input:CaptureFocus()
 	Input.Text = ''
+	wait()
+	Input:CaptureFocus()
 end
 
 local function Toggle(is_focused)
@@ -88,7 +134,7 @@ local function Toggle(is_focused)
 
 	if not is_focused then
 		if Input.Visible then
-			task.wait()
+			wait()
 			Input:CaptureFocus()
 		end
 	else
@@ -97,12 +143,20 @@ local function Toggle(is_focused)
 	end
 end
 
+local Function_List = {
+	print = print,
+	warn = warn,
+	error = error,
+	toggle_visible = Toggle
+}
+
 local function Func_run(func, ...)
 	func = func:lower()
-	if func == 'toggle_visible' then
-		Toggle(...)
-	elseif func == '' then
-		
+	local f = Function_List[func]
+	if f then
+		f(...)
+	else
+		warn("Unknown BindableEvent function: ", func)
 	end
 end
 Input.FocusLost:Connect(function(enterPressed)
@@ -112,6 +166,16 @@ Input.FocusLost:Connect(function(enterPressed)
 end)
 
 local Command = Instance.new("BindableEvent")
-Command.Name = "Console"
+Command.Name = "ConsoleRun"
 Command.Parent = script.Parent
 Command.Event:Connect(Func_run)
+
+LogService.MessageOut:Connect(function(message, type)
+	if type == Enum.MessageType.MessageOutput then
+
+	elseif type == Enum.MessageType.MessageWarning then
+
+	elseif type == Enum.MessageType.MessageError then
+
+	end
+end)

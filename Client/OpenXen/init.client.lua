@@ -3,6 +3,9 @@
 	
 	Author: interpreterK
 	https://github.com/interpreterK/OpenRPL
+
+	Plans to do later:
+	-Make this all Object Oriented.
 ]]
 
 -- Modify these to your liking
@@ -42,14 +45,26 @@ local V3 = Vector3.new
 local CN, lookAt = CFrame.new, CFrame.lookAt
 local abs, min, max = math.abs, math.min, math.max
 local resume, create = coroutine.resume, coroutine.create
+local wait = task.wait
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
+
+local ConsoleRun = script.Parent:WaitForChild("ConsoleRun")
+local print = function(...)
+	ConsoleRun:Fire('print',...)
+end
+local warn = function(...)
+	ConsoleRun:Fire('warn',...)
+end
+local error = function(...)
+	ConsoleRun:Fire('error',...)
+end
 
 -- Camera
 local Camera = workspace.CurrentCamera
 --If the camera does not exist yield for it, this is required
 if not Camera then
 	repeat
-		task.wait()
+		wait()
 	until workspace.CurrentCamera
 	Camera = workspace.CurrentCamera
 end
@@ -175,10 +190,10 @@ function KeyDown.nongp.f()
 end
 
 function KeyDown.nongp.backquote()
-	script.Parent.ConsoleVisibility:Fire('toggle_visible', false)
+	ConsoleRun:Fire('toggle_visible', false)
 end
 function KeyDown.gp.backquote()
-	script.Parent.ConsoleVisibility:Fire('toggle_visible', true)
+	ConsoleRun:Fire('toggle_visible', true)
 end
 --
 
