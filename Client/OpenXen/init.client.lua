@@ -7,6 +7,7 @@
 
 	Plans to do later:
 	-Make this all Object Oriented.
+	-Explode on fall damage death. (vel>1000)?
 ]]
 
 -- Modify these to your liking
@@ -48,10 +49,12 @@ local CN, lookAt = CFrame.new, CFrame.lookAt
 local abs, min, max = math.abs, math.min, math.max
 local resume, create = coroutine.resume, coroutine.create
 local wait = task.wait
+local C3 = Color3.new
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
 
 --Bind to the console
 local ConsoleRun = script.Parent:WaitForChild("ConsoleRun")
+local CommandGet = script.Parent:WaitForChild("CommandGet")
 local print = function(...)
 	ConsoleRun:Fire('print',...)
 end
@@ -140,14 +143,13 @@ local RightLeg = New('Part', Root, {
     Transparency = .1,
     Name = 'RightLeg'
 })
-local Test = New('Part', Root, {
-	Color = Color3.new(1,0,0),
-	Size = V3(2,0,2),
-	Anchored = true
-})
 
-local Ball = New('Part', workspace, {
-
+local HitBall = New('Part', workspace, {
+	Shape = Enum.PartType.Ball,
+	Color = C3(0,0,1),
+	Size = V3(.5,.5,.5),
+	Anchored = true,
+	CanCollide = false
 })
 
 SetView(Root)
@@ -347,6 +349,12 @@ local function Detect_Collision(Object)
 	local Bottom_Hit = Object_Sides.Matrix.Y_POS+Center-Collision_Root.Bottom
 
 	
+	--Collision indicators
+	if CommandGet:Invoke('ShowingCollisions') then
+		print"now showing"
+	else
+		print"not showing"
+	end
 end
 
 local function Glue(P1, P2, C0)
@@ -360,8 +368,11 @@ RunService.Stepped:Connect(function()
 	if Using_Freecam then
 		Controls(Freecam, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
 	else
+		local dir = Pointer_Direction()
+
 		Controls(Root, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
-		Root.CFrame=lookAt(Root.Position, Pointer_Direction())
+		Root.CFrame=lookAt(Root.Position,dir)
+		HitBall.Position=dir
 		Freecam.Position=Root.Position
 	end
 end)

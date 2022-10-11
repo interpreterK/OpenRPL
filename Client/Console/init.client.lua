@@ -20,7 +20,7 @@ local LogService = S.LogService
 local StarterGui = S.StarterGui
 
 local Player = Players.LocalPlayer
-
+ 
 local find, remove = table.find, table.remove
 local wait = task.wait
 local C3, rgb = Color3.new, Color3.fromRGB
@@ -33,6 +33,8 @@ local Storage = Console:WaitForChild("Storage")
 local List = Console:WaitForChild("ScrollingFrame")
 local Input = Console:WaitForChild("Input")
 --
+
+local ShowingCollisions = false
 
 --Base functions for the commands
 local function ClearOutput()
@@ -89,12 +91,19 @@ end
 local function Visual_Collisions(args)
 	local bool = Decision(args)
 	if bool ~= nil then
-		
+		ShowingCollisions = bool
 	end
 end
 
 local function Toggle_Console2()
 	StarterGui:SetCore('DevConsoleVisible', true)
+end
+
+local Command_Get = Instance.new("BindableFunction")
+Command_Get.Name = "CommandGet"
+Command_Get.Parent = script.Parent
+Command_Get.OnInvoke = function(Val)
+	return Val == 'ShowingCollisions' and ShowingCollisions
 end
 --
 
@@ -214,10 +223,6 @@ Command.Name = "ConsoleRun"
 Command.Parent = script.Parent
 Command.Event:Connect(Func_run)
 --
-
-local Command_Get = Instance.new("BindableFunction")
-Command_Get.Name = "CommandGet"
-Command_Get.Parent = script.Parent
 
 --Roblox output to the OpenXen output
 LogService.MessageOut:Connect(function(message, type)
