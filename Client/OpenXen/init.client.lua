@@ -1,4 +1,5 @@
 --[[
+	- OpenXen core engine -
 	A custom physics engine for ROBLOX.
 	
 	Author: interpreterK
@@ -40,6 +41,7 @@ local Players    = S.Players
 local RunService = S.RunService
 local UIS        = S.UserInputService
 local Storage    = S.ReplicatedStorage
+local StarterGui = S.StarterGui
 
 local V3 = Vector3.new
 local CN, lookAt = CFrame.new, CFrame.lookAt
@@ -48,6 +50,7 @@ local resume, create = coroutine.resume, coroutine.create
 local wait = task.wait
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
 
+--Bind to the console
 local ConsoleRun = script.Parent:WaitForChild("ConsoleRun")
 local print = function(...)
 	ConsoleRun:Fire('print',...)
@@ -58,6 +61,7 @@ end
 local error = function(...)
 	ConsoleRun:Fire('error',...)
 end
+--
 
 -- Camera
 local Camera = workspace.CurrentCamera
@@ -77,7 +81,7 @@ end
 
 -- CoreGuis
 if Disable_CoreGui then
-	S.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 end
 --
 
@@ -193,6 +197,14 @@ function KeyDown.nongp.backquote()
 	ConsoleRun:Fire('toggle_visible', false)
 end
 function KeyDown.gp.backquote()
+	ConsoleRun:Fire('toggle_visible', true)
+end
+function KeyDown.nongp.f9()
+	StarterGui:SetCore('DevConsoleVisible', false)
+	ConsoleRun:Fire('toggle_visible', false)
+end
+function KeyDown.gp.f9()
+	StarterGui:SetCore('DevConsoleVisible', false)
 	ConsoleRun:Fire('toggle_visible', true)
 end
 --
