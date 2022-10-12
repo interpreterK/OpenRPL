@@ -21,7 +21,7 @@ local StarterGui = S.StarterGui
 
 local Player = Players.LocalPlayer
  
-local find, remove = table.find, table.remove
+local find, remove, insert = table.find, table.remove, table.insert
 local wait = task.wait
 local C3, rgb = Color3.new, Color3.fromRGB
 
@@ -34,7 +34,9 @@ local List = Console:WaitForChild("ScrollingFrame")
 local Input = Console:WaitForChild("Input")
 --
 
-local ShowingCollisions = false
+local Var_Table = {
+	ShowingCollisions = false
+}
 
 --Base functions for the commands
 local function ClearOutput()
@@ -46,11 +48,17 @@ local function ClearOutput()
 	end
 end
 
+local logs = {}
 local function CreateLog(str, color)
 	local Output_obj = Storage.Output:Clone()
+	insert(logs, Output_obj)
 	Output_obj.Text = str or 'Placeholder text'
 	Output_obj.TextColor3 = color or C3(1,1,1)
 	Output_obj.Visible = true
+	
+	if #logs>=100 then --Max logs, reduces lag
+		logs[#logs]:Destroy()
+	end
 	Output_obj.Parent = List
 end
 
@@ -91,7 +99,7 @@ end
 local function Visual_Collisions(args)
 	local bool = Decision(args)
 	if bool ~= nil then
-		ShowingCollisions = bool
+		Var_Table.ShowingCollisions = bool
 	end
 end
 
@@ -103,7 +111,7 @@ local Command_Get = Instance.new("BindableFunction")
 Command_Get.Name = "CommandGet"
 Command_Get.Parent = script.Parent
 Command_Get.OnInvoke = function(Val)
-	return Val == 'ShowingCollisions' and ShowingCollisions
+	return Var_Table[Val]
 end
 --
 

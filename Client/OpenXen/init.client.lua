@@ -170,6 +170,22 @@ local PhysicsList_Remote = Storage:WaitForChild("OpenRPL"):WaitForChild("Physics
 local PhysicsList = PhysicsList_Remote:InvokeServer()
 --
 
+-- Collision detectors
+local CollisionDetectors = {}
+
+local function CollisionDetect()
+	
+end
+for i = 1,#PhysicsList do
+	CollisionDetectors[PhysicsList[i]] = {
+		x = {}, y = {}, z = {},
+		x_neg = {}, y_neg = {}, z_neg = {}
+	}
+	local a = CollisionDetectors[PhysicsList[i]]
+
+end
+--
+
 -- Player I/O
 local Holding = {}
 local KeyDown = {
@@ -351,9 +367,9 @@ local function Detect_Collision(Object)
 	
 	--Collision indicators
 	if CommandGet:Invoke('ShowingCollisions') then
-		print"now showing"
+		
 	else
-		print"not showing"
+		
 	end
 end
 
@@ -364,7 +380,7 @@ local function Glue(P1, P2, C0)
 end
 
 --https://devforum-uploads.s3.dualstack.us-east-2.amazonaws.com/uploads/original/4X/0/b/6/0b6fde38a15dd528063a92ac8916ce3cd84fc1ce.png
-RunService.Stepped:Connect(function()
+RunService.Stepped:Connect(function(_,__)
 	if Using_Freecam then
 		Controls(Freecam, Camera.CFrame.LookVector, Camera.CFrame.RightVector)
 	else
@@ -377,7 +393,7 @@ RunService.Stepped:Connect(function()
 	end
 end)
 
-RunService.Heartbeat:Connect(function(dt)
+RunService.Heartbeat:ConnectParallel(function(dt)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
@@ -388,13 +404,17 @@ RunService.Heartbeat:Connect(function(dt)
 
 		end
 	end
-	resume(create(function()
-		PhysicsList = PhysicsList_Remote:InvokeServer()
-	end))
+end)
+RunService.Heartbeat:ConnectParallel(function(_)
+	PhysicsList = PhysicsList_Remote:InvokeServer()
+
+	pcall(function()
+
+	end)
 end)
 
 --Rig & Animations
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(_)
 	local t = tick()
 	--local float_test = (1.5*math.cos(t*2))/2
 	local RJ = Glue(Torso,    Root)
