@@ -38,16 +38,15 @@ local function New(Inst, Parent, Props)
 	return i
 end
 
-local Players    = S.Players
 local RunService = S.RunService
 local UIS        = S.UserInputService
 local Storage    = S.ReplicatedStorage
 local StarterGui = S.StarterGui
 
 local V3 = Vector3.new
-local CN, lookAt = CFrame.new, CFrame.lookAt
-local abs, min, max = math.abs, math.min, math.max
+local CN, lookAt, ANG = CFrame.new, CFrame.lookAt, CFrame.Angles
 local resume, create = coroutine.resume, coroutine.create
+local abs, min, max, pi = math.abs, math.min, math.max, math.pi
 local wait = task.wait
 local C3 = Color3.new
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
@@ -168,22 +167,6 @@ local Freecam = New('Part', Camera, {
 -- PhysicsList
 local PhysicsList_Remote = Storage:WaitForChild("OpenRPL"):WaitForChild("PhysicsList")
 local PhysicsList = PhysicsList_Remote:InvokeServer()
---
-
--- Collision detectors
-local CollisionDetectors = {}
-
-local function CollisionDetect()
-	
-end
-for i = 1,#PhysicsList do
-	CollisionDetectors[PhysicsList[i]] = {
-		x = {}, y = {}, z = {},
-		x_neg = {}, y_neg = {}, z_neg = {}
-	}
-	local a = CollisionDetectors[PhysicsList[i]]
-
-end
 --
 
 -- Player I/O
@@ -363,14 +346,8 @@ local function Detect_Collision(Object)
 	local Collision_Root   = Collision_Solver(Root, Root_Sides)
 
 	local Bottom_Hit = Object_Sides.Matrix.Y_POS+Center-Collision_Root.Bottom
-
 	
-	--Collision indicators
-	if CommandGet:Invoke('ShowingCollisions') then
-		
-	else
-		
-	end
+
 end
 
 local function Glue(P1, P2, C0)
@@ -393,7 +370,7 @@ RunService.Stepped:Connect(function(_,__)
 	end
 end)
 
-RunService.Heartbeat:ConnectParallel(function(dt)
+RunService.Heartbeat:ConnectParallel(function(_)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
@@ -405,11 +382,44 @@ RunService.Heartbeat:ConnectParallel(function(dt)
 		end
 	end
 end)
+-- Collision detectors
+local CollisionDetectors = {}
+
+local function CollisionDetect(Axis, Color)
+	local Part = New('Part', workspace, {
+		Anchored = true,
+		CanCollide = false,
+		Size = V3(2,0,2),
+		Color = Color,
+		Axis = Axis
+	})
+end
+for i = 1,#PhysicsList do
+	local Part = PhysicsList[i]
+	CollisionDetectors[Part] = {
+		x = {}, y = {}, z = {},
+		x_neg = {}, y_neg = {}, z_neg = {}
+	}
+	local a = CollisionDetectors[Part]
+	a.x     = CollisionDetect(Part.CFrame*ANG(pi/2,0,0),  C3(1,0,0))
+	a.y     = CollisionDetect(Part.CFrame*ANG(0,pi/2,0),  C3(0,1,0))
+	a.z     = CollisionDetect(Part.CFrame*ANG(0,0,pi/2),  C3(0,0,1))
+	a.x_neg = CollisionDetect(Part.CFrame*ANG(pi/-2,0,0), C3(1,1,0))
+	a.y_neg = CollisionDetect(Part.CFrame*ANG(0,pi/-2,0), C3(0,1,1))
+	a.z_neg = CollisionDetect(Part.CFrame*ANG(0,0,pi/-2), C3(1,0,1))
+end
+--
 RunService.Heartbeat:ConnectParallel(function(_)
-	PhysicsList = PhysicsList_Remote:InvokeServer()
-
+	resume(create(function()
+		PhysicsList = PhysicsList_Remote:InvokeServer()
+	end))
 	pcall(function()
-
+		--Collision indicators
+		if CommandGet:Invoke('ShowingCollisions') then
+			 
+		else
+			
+		end
 	end)
 end)
 
