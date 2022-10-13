@@ -11,9 +11,11 @@
 ]]
 
 -- Modify these to your liking
-local Disable_CoreGui = true
-local Flying          = true
-local Gravity         = 150
+local Disable_CoreGui    = true
+local Flying             = true
+local Gravity            = 150
+local Show_Hit_Detection = false
+--
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
@@ -52,8 +54,8 @@ local C3 = Color3.new
 local World_Origin = Vector3.yAxis*100 --Reset point if no spawnlocation(s)
 
 --Bind to the console
-local ConsoleRun = script.Parent:WaitForChild("ConsoleRun")
-local CommandGet = script.Parent:WaitForChild("CommandGet")
+local ConsoleRun   = script.Parent:WaitForChild("ConsoleRun")
+local ConsoleFetch = script.Parent:WaitForChild("ConsoleFetch")
 local print = function(...)
 	ConsoleRun:Fire('print',...)
 end
@@ -272,7 +274,7 @@ end
 --
 
 -- Step loops & Physics
-local function E_clamp(n1, n2, n3) --Errorless clamp
+local function E_clamp(n1, n2, n3) --Error-less clamp
 	return max(n1, min(n2, n3))
 end
 
@@ -347,8 +349,41 @@ local function Detect_Collision(Object)
 
 	local Bottom_Hit = Object_Sides.Matrix.Y_POS+Center-Collision_Root.Bottom
 	
+	return {
 
+	}
 end
+
+-- Collision detectors
+local d_t = {}
+
+local function CollisionDetector(Cord, Color)
+	return New('Part', workspace, {
+		Anchored = true,
+		CanCollide = false,
+		Size = V3(2,0,2),
+		Color = Color,
+		CFrame = Cord
+	})
+end
+local function ValidateObjectCollision(Object)
+	d_t[Object] = {
+		x = {}, y = {}, z = {},
+		x_n = {}, y_n = {}, z_n = {}
+	}
+	d_t.x     = CollisionDetector(Object.CFrame*ANG(pi/2,0,0),  C3(1,0,0))
+	d_t.y     = CollisionDetector(Object.CFrame*ANG(0,pi/2,0),  C3(0,1,0))
+	d_t.z     = CollisionDetector(Object.CFrame*ANG(0,0,pi/2),  C3(0,0,1))
+	d_t.x_n   = CollisionDetector(Object.CFrame*ANG(pi/-2,0,0), C3(1,1,0))
+	d_t.y_n   = CollisionDetector(Object.CFrame*ANG(0,pi/-2,0), C3(0,1,1))
+	d_t.z_n   = CollisionDetector(Object.CFrame*ANG(0,0,pi/-2), C3(1,0,1))
+end
+if Show_Hit_Detection then
+	for i = 1,#PhysicsList do
+		ValidateObjectCollision(PhysicsList[i])
+	end
+end
+--
 
 local function Glue(P1, P2, C0)
 	C0 = C0 or CN()
@@ -370,11 +405,17 @@ RunService.Stepped:Connect(function(_,__)
 	end
 end)
 
-RunService.Heartbeat:ConnectParallel(function(_)
+RunService.Heartbeat:Connect(function(_)
 	for i = 1, #PhysicsList do
 		local Object = PhysicsList[i]
 		if Object.CanCollide then
 			Detect_Collision(Object)
+			--Collision indicators
+			if ConsoleFetch:Invoke('ShowingCollisions') then
+				
+			else
+				
+			end
 		end
 		if not Object.Anchored then
 			--Gravity & Velocity stuff
@@ -382,45 +423,13 @@ RunService.Heartbeat:ConnectParallel(function(_)
 		end
 	end
 end)
--- Collision detectors
-local CollisionDetectors = {}
 
-local function CollisionDetect(Axis, Color)
-	local Part = New('Part', workspace, {
-		Anchored = true,
-		CanCollide = false,
-		Size = V3(2,0,2),
-		Color = Color,
-		Axis = Axis
-	})
-end
-for i = 1,#PhysicsList do
-	local Part = PhysicsList[i]
-	CollisionDetectors[Part] = {
-		x = {}, y = {}, z = {},
-		x_neg = {}, y_neg = {}, z_neg = {}
-	}
-	local a = CollisionDetectors[Part]
-	a.x     = CollisionDetect(Part.CFrame*ANG(pi/2,0,0),  C3(1,0,0))
-	a.y     = CollisionDetect(Part.CFrame*ANG(0,pi/2,0),  C3(0,1,0))
-	a.z     = CollisionDetect(Part.CFrame*ANG(0,0,pi/2),  C3(0,0,1))
-	a.x_neg = CollisionDetect(Part.CFrame*ANG(pi/-2,0,0), C3(1,1,0))
-	a.y_neg = CollisionDetect(Part.CFrame*ANG(0,pi/-2,0), C3(0,1,1))
-	a.z_neg = CollisionDetect(Part.CFrame*ANG(0,0,pi/-2), C3(1,0,1))
-end
---
-RunService.Heartbeat:ConnectParallel(function(_)
+RunService.Heartbeat:Connect(function(_)
 	resume(create(function()
 		PhysicsList = PhysicsList_Remote:InvokeServer()
 	end))
-	pcall(function()
-		--Collision indicators
-		if CommandGet:Invoke('ShowingCollisions') then
-			 
-		else
-			
-		end
-	end)
+	--Most commands will process here
+
 end)
 
 --Rig & Animations

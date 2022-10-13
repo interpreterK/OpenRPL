@@ -26,12 +26,12 @@ local wait = task.wait
 local C3, rgb = Color3.new, Color3.fromRGB
 
 --Console UI dependencies
-local Console = Storage:WaitForChild("Console")
+local Console  = Storage:WaitForChild("Console")
 Console.Parent = Player:WaitForChild("PlayerGui")
 
 local Storage = Console:WaitForChild("Storage")
-local List = Console:WaitForChild("ScrollingFrame")
-local Input = Console:WaitForChild("Input")
+local List    = Console:WaitForChild("ScrollingFrame")
+local Input   = Console:WaitForChild("Input")
 --
 
 local Var_Table = {
@@ -74,7 +74,7 @@ local function build_tuple_str(...)
 end
 local print = function(...)
 	local build = build_tuple_str(...)
-	CreateLog(build, rgb(163,162,165))
+	CreateLog(build, rgb(200,200,200))
 end
 local warn = function(...)
 	local build = build_tuple_str(...)
@@ -107,8 +107,30 @@ local function Toggle_Console2()
 	StarterGui:SetCore('DevConsoleVisible', true)
 end
 
+local function propStr_to_table(Props_str)
+	local props_split = Props_str:split('{')
+	local what_we_usindoc = props_split:find(';')
+	local props = props_split:split(',') --non-pascal case naming for properties>pascal casing
+
+	
+end
+local CreatePart_debounce = false
+local function CreatePart(args)
+	if not CreatePart_debounce then
+		local sandbox = args
+		remove(1,args)
+		local Props = propStr_to_table(sandbox)
+
+
+		--I C your plans
+		CreatePart_debounce = true
+		wait(5)
+		CreatePart_debounce = false
+	end
+end
+
 local Command_Get = Instance.new("BindableFunction")
-Command_Get.Name = "CommandGet"
+Command_Get.Name = "ConsoleFetch"
 Command_Get.Parent = script.Parent
 Command_Get.OnInvoke = function(Val)
 	return Var_Table[Val]
@@ -117,29 +139,52 @@ end
 
 --The commands
 local Commands = {
-	["clear"] = ClearOutput,
-	["visual_collisions"] = Visual_Collisions,
-	["console2"] = Toggle_Console2,
+	["clear"] = {
+		args=nil,
+		f=ClearOutput
+	},
+	["visual_collisions"] = {
+		args='[bool]',
+		f=Visual_Collisions
+	},
+	["console2"] = {
+		args=nil,
+		f=Toggle_Console2
+	},
+	["cpart"] = {
+		args='[properties]',
+		f=CreatePart
+	},
 
 	--outputs
-	['print'] = function(args)
-		remove(args,1)
-		print(unpack(args))
-	end,
-	['warn'] = function(args)
-		remove(args,1)
-		warn(unpack(args))
-	end,
-	['error'] = function(args)
-		remove(args,1)
-		error(unpack(args))
-	end,
-	['info'] = function(args)
-		remove(args,1)
-		info(unpack(args))
-	end,
-	--testings
-	["!"] = function() CreateLog() end
+	['print'] = {
+		args='[string]',
+		f=function(args)
+			remove(args,1)
+			print(unpack(args))
+		end
+	},
+	['warn'] = {
+		args='[string]',
+		f=function(args)
+			remove(args,1)
+			warn(unpack(args))
+		end
+	},
+	['error'] = {
+		args='[string]',
+		f=function(args)
+			remove(args,1)
+			error(unpack(args))
+		end
+	},
+	['info'] = {
+		args='[string]',
+		f=function(args)
+			remove(args,1)
+			info(unpack(args))
+		end
+	},
 }
 local function Process_Command(str)
 	local args = str:split(' ')
@@ -150,12 +195,13 @@ local function Process_Command(str)
 		local Command = Commands[low1]
 
 		if Command then
-			Command(args)
+			Command.f(args)
 
 		--Special's
 		elseif low1 == 'help' or low1 == '?' then
-			for c in next, Commands do
-				print(c)
+			for c,d in next, Commands do
+				print(c, d.args and 
+					'<font color="#ffffff">'..d.args..'</font>' or '')
 			end
 
 			--Indicate the help commands
